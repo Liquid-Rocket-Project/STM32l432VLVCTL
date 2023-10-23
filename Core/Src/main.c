@@ -68,6 +68,7 @@ void togglePin(pin *PinOut,  CAN_TxHeaderTypeDef *TxHeader, uint8_t TxData[8], u
 /* USER CODE BEGIN 0 */
 uint8_t DataInFlag = RESET;
 uint8_t BadCharFlag = RESET;
+volatile uint8_t stateTxTime = RESET;
 
 //CAN MSG Buffers
 CAN_TxHeaderTypeDef TxHeader;
@@ -179,6 +180,7 @@ int main(void)
   pin8.pinNo = GPIO_PIN_1;// Was GPIO_PIN_5
 
   pin *pinActive = &pin1;
+  uint8_t pinStates[8] = { 0 };
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -191,27 +193,35 @@ int main(void)
 			  switch (ProcBuffer[i]){
 			  case 1:
 				  pinActive = &pin1;
+          pinStates[0] ^= 1;
 				  break;
 			  case 2:
 				  pinActive = &pin2;
+          pinStates[1] ^= 1;
 				  break;
 			  case 3:
 				  pinActive = &pin3;
+          pinStates[2] ^= 1;
 				  break;
 			  case 4:
 				  pinActive = &pin4;
+          pinStates[3] ^= 1;
 				  break;
 			  case 5:
 				  pinActive = &pin5;
+          pinStates[4] ^= 1;
 				  break;
 			  case 6:
 				  pinActive = &pin6;
+          pinStates[5] ^= 1;
 				  break;
 			  case 7:
 				  pinActive = &pin7;
+          pinStates[6] ^= 1;
 				  break;
 			  case 8:
 				  pinActive = &pin8;
+          pinStates[7] ^= 1;
 				  break;
 			  default:
 				  BadCharFlag = SET;
@@ -225,6 +235,12 @@ int main(void)
 
 		  }
 		  HAL_Delay(2);
+
+      if (stateTxTime == SET) {
+        HAL_CAN_AddTxMessage(&hcan1, &TxHeader, pinStates, &TxMailbox);
+        stateTxTime = RESET;
+      }
+
 		  DataInFlag = RESET;
 
 	  }
@@ -443,6 +459,12 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_SYSTICK_Handler(void) {
+  stateTxTime = SET;
+
+}
+
+
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1) {
 
 	HAL_CAN_GetRxMessage(hcan1, CAN_RX_FIFO0, &RxHeader, RxData);
