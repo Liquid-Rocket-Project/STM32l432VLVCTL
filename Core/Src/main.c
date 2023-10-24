@@ -80,6 +80,7 @@ uint8_t TxData[8]  = {0};
 uint8_t RxData[8];
 
 uint8_t ProcBuffer[8];
+uint8_t pinStates[8] = { 0 };
 
 /* USER CODE END 0 */
 
@@ -122,7 +123,7 @@ int main(void)
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 
   //Set Tx Header Arbitration and Control fields
-  TxHeader.DLC = 2;  //only sending one number representing id of valve toggled
+  TxHeader.DLC = 8; //only sending one number representing id of valve toggled
   TxHeader.ExtId = 0;
   TxHeader.IDE = CAN_ID_STD;
   TxHeader.RTR = CAN_RTR_DATA;
@@ -180,7 +181,7 @@ int main(void)
   pin8.pinNo = GPIO_PIN_1;// Was GPIO_PIN_5
 
   pin *pinActive = &pin1;
-  uint8_t pinStates[8] = { 0 };
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -193,35 +194,35 @@ int main(void)
 			  switch (ProcBuffer[i]){
 			  case 1:
 				  pinActive = &pin1;
-          pinStates[0] ^= 1;
+				  pinStates[0] ^= 1;
 				  break;
 			  case 2:
 				  pinActive = &pin2;
-          pinStates[1] ^= 1;
+				  pinStates[1] ^= 1;
 				  break;
 			  case 3:
 				  pinActive = &pin3;
-          pinStates[2] ^= 1;
+				  pinStates[2] ^= 1;
 				  break;
 			  case 4:
 				  pinActive = &pin4;
-          pinStates[3] ^= 1;
+				  pinStates[3] ^= 1;
 				  break;
 			  case 5:
 				  pinActive = &pin5;
-          pinStates[4] ^= 1;
+				  pinStates[4] ^= 1;
 				  break;
 			  case 6:
 				  pinActive = &pin6;
-          pinStates[5] ^= 1;
+				  pinStates[5] ^= 1;
 				  break;
 			  case 7:
 				  pinActive = &pin7;
-          pinStates[6] ^= 1;
+				  pinStates[6] ^= 1;
 				  break;
 			  case 8:
 				  pinActive = &pin8;
-          pinStates[7] ^= 1;
+				  pinStates[7] ^= 1;
 				  break;
 			  default:
 				  BadCharFlag = SET;
@@ -236,14 +237,20 @@ int main(void)
 		  }
 		  HAL_Delay(2);
 
-      if (stateTxTime == SET) {
-        HAL_CAN_AddTxMessage(&hcan1, &TxHeader, pinStates, &TxMailbox);
-        stateTxTime = RESET;
-      }
-
 		  DataInFlag = RESET;
 
 	  }
+
+
+      if (stateTxTime == SET) {
+		static int count = 0;
+		if (++count >= 100) {
+			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, pinStates, &TxMailbox);
+			count = 0;
+		}
+		stateTxTime = RESET;
+      }
+
 
 
     /* USER CODE END WHILE */
@@ -459,8 +466,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_SYSTICK_Handler(void) {
-  stateTxTime = SET;
+void HAL_SYSTICK_Callback(void) {
+
+		stateTxTime = SET;
+
 
 }
 
@@ -482,9 +491,9 @@ void togglePin(pin *PinOut,  CAN_TxHeaderTypeDef *TxHeader, uint8_t TxData[8], u
 	else {
 		HAL_GPIO_WritePin(PinOut->pinReg, PinOut->pinNo, RESET);
 	}
-	TxData[0] = PinOut->pinId;
-	TxData[1] = PinOut->pinMode;
-	HAL_CAN_AddTxMessage(&hcan1, TxHeader, TxData, TxMailbox);
+//	TxData[0] = PinOut->pinId;
+//	TxData[1] = PinOut->pinMode;
+//	HAL_CAN_AddTxMessage(&hcan1, TxHeader, TxData, TxMailbox);
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
 
 }
